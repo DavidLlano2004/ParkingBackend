@@ -15,13 +15,5 @@ export const registerSchema = z.object({
     .email({ message: "Invalid email" }),
   password: z
     .string({ requerid_error: "Password is required" })
-    .min(6, { message: "Password must be at least 6 characters" }),
-  fullName: z
-    .string({ requerid_error: "Fullname is required" }),
-  phone: z
-    .string({ requerid_error: "Phone is required" }),
-  address: z
-    .string({ requerid_error: "Address is required" }),
-  userName: z
-    .string({ requerid_error: "Username is required" })
+    // .min(6, { message: "Password must be at least 6 characters" }),
 });

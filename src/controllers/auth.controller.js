@@ -43,7 +43,7 @@ export const login = async (req, res) => {
 };
 
 export const register = async (req, res) => {
-  const { name, email, password, cc, rol, residence_address } = req.body;
+  const { name, email, password, cc, rol, residence_address, phone } = req.body;
   const id = uuidv4();
 
   try {
@@ -58,32 +58,34 @@ export const register = async (req, res) => {
         message: "Ya existe un usuario con este correo electrónico",
       });
     }
+
     const newUser = await User.create({
       id,
       name,
       email,
-      password,
       cc,
       rol,
       residence_address,
+      phone,
       password: passwordHash,
     });
 
-    const responseUser= {
+    const responseUser = {
       id: newUser.id,
       name: newUser.name,
-      fullName: newUser.fullName,
+      email: newUser.email,
+      cc: newUser.cc,
+      rol: newUser.rol,
+      residence_address: newUser.residence_address,
       phone: newUser.phone,
-      address: newUser.address,
-      userName: newUser.userName,
-      birthday: newUser.birthday,
       createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt,
     };
 
     return res.status(201).json({
       message: "Usuario creado correctamente",
       response: responseUser,
-    }); 
+    });
   } catch (error) {
     console.error("Error en register:", error);
 
@@ -105,26 +107,29 @@ export const logout = (req, res) => {
 };
 
 export const verifyToken = async (req, res) => {
-  const { token } = req.cookies;
-  if (!token) return res.status(401).json({ message: "Unauthorized" });
-  jwt.verify(token, TOKEN_SECRET, async (err, user) => {
-    if (err) return res.status(401).json({ message: "Unauthorized" });
-    const [userFound] = await sequelize.query(
-      `
-      SELECT *
-      FROM users
-      WHERE id = :id
-      `,
-      {
-        replacements: { id: user.id },
-        type: QueryTypes.SELECT,
-      }
-    );
-    if (!userFound) return res.status(401).json({ message: "Unauthorized" });
+  try {
+    const { token } = req.cookies;
 
-    return res.status(200).json({
-      message: "User found",
-      response: userFound,
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    jwt.verify(token, TOKEN_SECRET, async (err, user) => {
+      if (err) return res.status(401).json({ message: "Unauthorized" });
+
+      const userFound = await User.findByPk(user.id);
+
+      if (!userFound) return res.status(401).json({ message: "Unauthorized" });
+
+      return res.status(200).json({
+        message: "User found",
+        response: userFound,
+      });
     });
-  });
+  } catch (error) {
+    console.error("Error en verifyToken:", error);
+
+    return res.status(500).json({
+      message: "Error al verificar token",
+      error: error.message,
+    });
+  }
 };
