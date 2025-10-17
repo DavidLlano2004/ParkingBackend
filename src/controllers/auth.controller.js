@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { User } from "../models/user.model.js";
+import { Parking } from "../models/parking.model.js";
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -24,6 +25,11 @@ export const login = async (req, res) => {
 
     const token = await createAccesToken({ id: userFound.id });
 
+    const parking = await Parking.findOne({
+      where: { userEmployeeId: userFound.id },
+      attributes: ["id"],
+    });
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
@@ -32,9 +38,14 @@ export const login = async (req, res) => {
 
     const { password: _, ...userData } = userFound.toJSON();
 
+    const responseEnd = {
+      ...userData,
+      ...(userData?.rol === "Empleado" && { parking }),
+    };
+
     return res.status(200).json({
       message: "Usuario autenticado",
-      response: userData,
+      response: responseEnd,
     });
   } catch (error) {
     console.error("Error en login:", error);
@@ -91,7 +102,11 @@ export const register = async (req, res) => {
 
     return res.status(500).json({
       message: "Error al crear el suario",
-      error: error.message,
+      error:
+        error.message ===
+        "llave duplicada viola restricción de unicidad «users_email_key34»"
+          ? "Correo eléctronico en uso"
+          : error.message,
     });
   }
 };
@@ -119,9 +134,24 @@ export const verifyToken = async (req, res) => {
 
       if (!userFound) return res.status(401).json({ message: "Unauthorized" });
 
+      const userData = userFound.get({ plain: true });
+
+      const parking =
+        userData.rol === "Empleado"
+          ? await Parking.findOne({
+              where: { userEmployeeId: userData.id },
+              attributes: ["id"],
+            })
+          : null;
+
+      const responseEnd = {
+        ...userData,
+        ...(parking && { parking }),
+      };
+
       return res.status(200).json({
         message: "User found",
-        response: userFound,
+        response: responseEnd,
       });
     });
   } catch (error) {
