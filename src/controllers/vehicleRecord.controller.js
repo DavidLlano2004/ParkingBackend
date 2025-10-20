@@ -70,7 +70,7 @@ export const registerVehicleExit = async (req, res) => {
     }
 
     const record = await VehicleRecord.findOne({
-      where: { license_plate, status: "active" },
+      where: { license_plate, is_active: true },
     });
 
     if (!record) {
@@ -81,12 +81,13 @@ export const registerVehicleExit = async (req, res) => {
 
     await record.update({
       exit_time: new Date(),
-      status: "completed",
+      is_active: false,
     });
 
     const space = await Space.findByPk(record.spaceId);
+
     if (space) {
-      await space.update({ status: "Disponible" });
+      await space.update({ is_occupied: false });
     }
 
     res.status(200).json({

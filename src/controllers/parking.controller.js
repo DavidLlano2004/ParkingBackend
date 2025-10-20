@@ -107,10 +107,17 @@ export const deleteParking = async (req, res) => {
       message: "Parqueadero eliminado correctamente",
     });
   } catch (error) {
-    console.error("Error en deleteParking:", error);
+    const messageValidate =
+      "update o delete en «parkings» viola la llave foránea «vehicle_records_parkingId_fkey» en la tabla «vehicle_records»";
+
+    let messageError = error.message;
+
     return res.status(500).json({
       message: "Error al eliminar el parqueadero",
-      error: error.message,
+      error:
+        messageError === messageValidate
+          ? "El parqueadero contiene registros , no se puede eliminar"
+          : messageError,
     });
   }
 };
